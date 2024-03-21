@@ -1,24 +1,30 @@
 
-var mouseIntensity = 0.00001;
-var squareResolution = 4;
-var timeScale=0.01;
-var rez = 0.001;
+var mouseIntensity = 0.05; //number of pixels moved per pixel moved by mouse -> 1 = 1:1 movement. Negative Valiues give inverse relationship
+var pixelDistance = 3;
+var pixelSize = 3;
+var framesN = 16;
+var timeScale=0.0005;
+var fR = 60; //Framerate Cap, set to null for uncapped
+var frequency = 0.001;
 var ditherMethod="random"; //select between "random" and "pattern"
 var cols = ["#fd5925", "#ffede7", "#1c5872", "#c19384", "#9a2a06", "#3ba7e5", "#061e29", "#ef972d", "#84541a"]
 
 var nCols= cols.length;
 var grid = [];
-var framesN = squareResolution*squareResolution;
+var randomGrid = [];
+var pixelArray = [];
+
 var currentIteration = 0;
 var numIterations ,gridLength ,nextMax ,pixelsPerFrame;
 
+
  
 
-c = n = rez;
+c = n = frequency;
 var t = 0.3;
 var x = 0;
 var y = 0;
-var stepSize = squareResolution*squareResolution;
+var stepSize = pixelDistance*pixelDistance;
 
 
 
@@ -29,29 +35,30 @@ function setup() {
   var sketchCanvas = createCanvas(width,height);
   sketchCanvas.scale(2)
   sketchCanvas.parent("myCanvas");
-    strokeWeight(3);
-    noiseDetail(2);
-    background(0);
+    frameRate(fR)
+    strokeWeight(pixelSize);
+    noiseDetail(3);
+    background("#f5cdaf");
   computeGrid(ditherMethod);
   
     
   }
   
 function draw() {
-
-    var mouseW = mouseX*mouseIntensity;
-    var mouseH = mouseY*mouseIntensity;
-   
+  console.log(frameRate())
+    var mouseW = - (mouseX/width)*1000*frequency*mouseIntensity;
+    var mouseH = - (mouseY/height)*1000*frequency*mouseIntensity;
+   console.log(mouseW,mouseH)
 
     for (i = currentIteration*pixelsPerFrame; i < nextMax; i++ ) {
-        n = noise((grid[i][0])*rez + mouseW, (grid[i][1])*rez + (t * 0.1)+mouseH,t) * nCols;
+        n = noise((grid[i][0])*frequency + mouseW, (grid[i][1])*frequency + (t * 0.1)+mouseH,4*t) * nCols;
         c=floor(n)
         stroke(cols[c]);
         point(grid[i][0],grid[i][1])
     }
 
     if (t > 0.2){t*=0.9}
-    else(t*=(1-timeScale))
+    else(t-=timeScale)
 
     if(currentIteration<numIterations){
       currentIteration++; 
@@ -88,14 +95,31 @@ function draw() {
   function computeGrid(type){
     grid = [];
 
-    
+    if (type === "noise") {
+      var mouseW = mouseX*mouseIntensity;
+      var mouseH = mouseY*mouseIntensity;
+      var colGrid = []
+
+      for (i = .5*pixelDistance; i < width; i +=pixelDistance) {
+        for (j = .5*pixelDistance; j < height; j+=pixelDistance) {
+          n = noise(i*frequency + mouseW, j*frequency + (t * 0.1)+mouseH,t) * nCols;
+          c = floor(n)
+          colGrid.push([i,j,c])
+        }
+      }
+      grid = sortByThirdValue(colGrid)
+
+     
+
+
+    }
     if(type === "pattern"){
 
       
         for(var b=0; b<=framesN;b++){
 
-          var startValueWidth = squareResolution*x+.5*squareResolution;
-          var startValueHeight = squareResolution*y+.5*squareResolution;
+          var startValueWidth = pixelDistance*x+.5*pixelDistance;
+          var startValueHeight = pixelDistance*y+.5*pixelDistance;
           
           for (i = startValueWidth; i < width; i +=stepSize) {
             for (j = startValueHeight; j < height; j+=stepSize) {
@@ -103,7 +127,7 @@ function draw() {
             }
           }
           
-      //x is the current horizontal pixel
+        //x is the current horizontal pixel
         //y is the current vertical row
         if(x===0){x=2}
         else if (x===2) {x=1}
@@ -111,20 +135,10 @@ function draw() {
         else if (x===3){x=0}
 
         if(x===0){
-        //if(x===0||x===1){
-          if(y===0){y=2;
-            //x=0
-          }
-          else if (y===2){y=1
-            //;x=1
-          }
-          else if (y===1){y=3;
-            //x=1
-          }
-          else {y=0;
-            //x=0
-          }
-
+          if(y===0){y=2}
+          else if (y===2){y=1;}
+          else if (y===1){y=3;}
+          else {y=0;}
         }
       }
     }
@@ -133,8 +147,8 @@ function draw() {
 
           
             
-            for (i = .5*squareResolution; i < width; i +=squareResolution) {
-              for (j = .5*squareResolution; j < height; j+=squareResolution) {
+            for (i = .5*pixelDistance; i < width; i +=pixelDistance) {
+              for (j = .5*pixelDistance; j < height; j+=pixelDistance) {
                 grid.push([i,j])
               }
             }
@@ -164,7 +178,7 @@ function draw() {
       [array[currentIndex], array[randomIndex]] = [
         array[randomIndex], array[currentIndex]];
     }
-  
+    
     return array;
   }
 
@@ -177,3 +191,13 @@ function draw() {
     return randomColors;
   }
   
+  function sortByThirdValue(arr) {
+    arr.sort(function(a, b) {
+
+        if (a[2] !== b[2]) {
+            return a[2] - b[2];
+        }
+        return Math.random() - 0.5;;
+    });
+    return arr;
+}
